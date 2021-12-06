@@ -4,6 +4,8 @@
 #include <iostream>
 #include "Elliptic_curve.h"
 #include "utils.h"
+#include <algorithm>
+#include <gmpxx.h>
 
 const mpz_t* point::get_x() const {
     return &_x;
@@ -37,6 +39,16 @@ elliptic_curve::elliptic_curve(const mpz_t a, const mpz_t b, const mpz_t p) {
     mpz_inits(_a, _b, _p, NULL);
     mpz_set(_a, a);
     mpz_set(_b, b);
+    mpz_set(_p, p);
+}
+
+void elliptic_curve::set_a(const mpz_t a) {
+    mpz_set(_a, a);
+}
+void elliptic_curve::set_b(const mpz_t b) {
+    mpz_set(_b, b);
+}
+void elliptic_curve::set_p(const mpz_t p) {
     mpz_set(_p, p);
 }
 
@@ -283,15 +295,282 @@ point elliptic_curve::generate_point() {
     return result;
 }
 
-int main()
-{
-    mpz_t a, b, p;
-    mpz_inits(a, b, p, NULL);
+point elliptic_curve::generate_point(const mpz_t x, const elliptic_curve& E) {
+    
+    mpz_t t;
+    mpz_init(t);
 
-    mpz_set_ui(a, 2);
-    mpz_set_ui(b, 3);
-    mpz_set_ui(p, 97);
-    elliptic_curve curve(a, b, p);
+    mpz_powm_ui(t, x, 2, E._p);
+    mpz_add(t, t, E._a);
+    mpz_mul(t, t, x);
+    mpz_add(t, t, E._b);
+    mpz_mod(t, t, E._p); //t = (x(x^2 + a) + b (mod p)
+
+    if (mpz_legendre(t, E._p) == -1) {
+        mpz_clear(t);
+        return point (0, 1, *this, false);
+    }
+
+    utils::sqrtm(t, t, E._p); // t = sqrt(t) in mod (_p)
+    point result(x, t, *this);
+    mpz_clear(t);
+    return result;
+}
+
+std::deque<mpz_class> cross(std::deque<mpz_class> A, std::deque <mpz_class> B) {
+    std::cout << "A = {";
+    for (auto& it : A) {
+        std::cout << it << ", ";
+    }
+    std::cout << "}\n";
+    std::cout << "B = {";
+    for (auto& it : B) {
+        std::cout << it << ", ";
+    }
+    std::cout << "}\n";
+    std::sort(A.begin(), A.end(), [](mpz_class first, mpz_class second) {
+        if (mpz_cmp(first.get_mpz_t(), second.get_mpz_t()) < 0)
+            return true;
+        return false;
+        });
+
+    std::sort(B.begin(), B.end());
+
+
+    unsigned long i = 0, j = 0;
+    std::deque<mpz_class> S;
+
+    std::cout << "Starting cycle in cross...\n";
+    while ((i < A.size()) && (j < B.size())) {
+        if (A[i] <= B[j]) {
+            if (A[i] == B[j]) {
+                std::cout << A[i] << " == " << B[j] << std::endl;
+                S.push_back(A[i]);
+            }
+            ++i;
+            while ((i < A.size() - 1) && (A[i] == A[i - 1])) {
+                ++i;
+            }
+        }
+        else {
+            ++j;
+            while ((j < B.size() - 1) && (B[j] == B[j - 1])) {
+                ++j;
+            }
+        }
+    }
+    std::cout << "End cycle in cross\n";
+    return S;
+
+}
+
+std::deque<mpz_class> elliptic_curve::shanks(
+    std::deque<mpz_class>& A, std::deque<mpz_class>& B, 
+    const point P, elliptic_curve E, const mpz_class W, const mpz_class x
+) {
+    mpz_t idx, bound, temp;
+    mpz_inits(bound, temp, NULL);
+    mpz_sub_ui(bound, W.get_mpz_t(), 1);
+    mpz_init_set_ui(idx, 0);
+    for (; mpz_cmp(idx, bound) <= 0; mpz_add_ui(idx, idx, 1)) {
+        mpz_set(temp, E._p);
+        mpz_add(temp, temp, idx);
+        mpz_add_ui(temp, temp, 1);
+        point point_temp(0, 1, E, false);
+        point_temp = E.mul(P, temp);
+        A.push_back(mpz_class(point_temp._x));
+    }
+
+    mpz_set_ui(idx, 0);
+    mpz_set(bound, W.get_mpz_t());
+    for (; mpz_cmp(idx, bound) <= 0; mpz_add_ui(idx, idx, 1)) {
+        mpz_set(temp, W.get_mpz_t());
+        mpz_mul(temp, temp, idx);
+        point point_temp(0, 1, E, false);
+        point_temp = E.mul(P, temp);
+        B.push_back(mpz_class(point_temp._x));
+    }
+
+    mpz_clears(idx, bound, temp, NULL);
+    return cross(A, B);
+}
+
+mpz_class ind(std::deque<mpz_class>& S, mpz_class s) {
+    mpz_t i;
+    mpz_init_set_ui(i, 0);
+    for (auto& it : S) {
+        if (it == s) {
+            mpz_clear(i);
+            return mpz_class(i);
+        }
+        mpz_add_ui(i, i, 1);
+    }
+    mpz_clear(i);
+    return mpz_class(-1);
+
+}
+
+mpz_class return_t(const point& P, elliptic_curve E, const mpz_class& beta, const mpz_class& gamma, const mpz_class& W, const mpz_class p) {
+    mpz_class temp = beta;
+    temp = temp + gamma * W;
+    mpz_class test = p + 1 + temp;
+    auto pnt = E.mul(P, test.get_mpz_t());
+    if (pnt.get_z() == false)
+        return temp;
+    else {
+        return beta - gamma * W;
+    }
+}
+
+mpz_class elliptic_curve::order() {
+    if (mpz_cmp_ui(_p, 229) <= 0) {
+
+    }
+
+    elliptic_curve E(_a, _b, _p);
+
+    mpz_t g;
+    mpz_init(g);
+    utils::rand_not_sqr_res(g, _p);
+
+    mpz_t W;
+    mpz_init(W);
+    mpf_t temp, sqrt_2;
+    mpf_inits(temp, sqrt_2, NULL);
+    mpf_set_z(temp, _p);
+    mpf_sqrt(temp, temp);
+    mpf_sqrt(temp, temp);
+    mpf_sqrt_ui(sqrt_2, 2);
+    mpf_mul(temp, temp, sqrt_2);
+    mpf_ceil(temp, temp);
+    mpz_set_f(W, temp);
+    std::cout << "W = " << W << std::endl;
+    mpf_clears(temp, sqrt_2, NULL);
+
+    mpz_t c, d;
+    mpz_inits(c, d, NULL);
+    mpz_powm_ui(c, g, 2, _p);
+    mpz_mul(c, c, _a);
+    mpz_mod(c, c, _p);
+    
+    mpz_powm_ui(d, g, 3, _p);
+    mpz_mul(d, d, _b);
+    mpz_mod(d, d, _p);
+    
+    mpz_t sigma, y_2, a_x;
+    mpz_inits(sigma, y_2, a_x, NULL);
+    gmp_randstate_t rand_state;
+    gmp_randinit_mt(rand_state);
+    while (true) {
+
+        mpz_t x;
+        mpz_init(x);
+        gmp_randseed_ui(rand_state, utils::get_seed());
+        mpz_urandomm(x, rand_state, _p);
+
+
+        mpz_powm_ui(y_2, x, 3, _p);
+        mpz_set(a_x, _a);
+        mpz_mul(a_x, a_x, x);
+
+        mpz_add(y_2, y_2, a_x);
+        mpz_add(y_2, y_2, _b);
+        mpz_mod(y_2, y_2, _p);
+
+        mpz_set_si(sigma, mpz_legendre(y_2, _p));
+        std::cout << "sigma = " << sigma << std::endl;
+
+        if (mpz_cmp_ui(sigma, 0) == 0) {
+            std::cout << "legandre(y^2, p) = 0, continue!\n" << std::endl;
+            mpz_clear(x);
+            continue;
+        }
+        if (mpz_cmp_ui(sigma, 1) == 0) {
+            ;
+        }
+        else {
+            std::cout << "set (c, d) = (" << c << ", " << d << " )" <<std::endl;
+            E.set_a(c);
+            E.set_b(d);
+            mpz_mul(x, x, g);
+            std::cout << "g = " << g << std::endl;
+            std::cout << "set x = " << x << std::endl;
+        }
+        std::cout << "Starting generate point..." << std::endl;
+        point P = generate_point(x, E);
+        std::cout << "Success.\n";
+        if (P._z == false) {
+            std::cout << "for this x point does not exist, continue!\n\n";
+            mpz_clear(x);
+            E.set_a(_a);
+            E.set_b(_b);
+            continue;
+        }
+        std::cout << "point P : " << P << std::endl;
+
+        std::deque<mpz_class> A, B, S;
+
+        S = shanks(A, B, P, E, mpz_class(W), mpz_class(x));
+        std::cout << "S = {";
+        for (auto& it : S) {
+            std::cout << it << ", ";
+        }
+        std::cout << "}\n";
+
+        if (S.size() != 1) {
+            mpz_clear(x);
+            E.set_a(_a);
+            E.set_b(_b);
+            continue;
+        }
+
+        gmp_randclear(rand_state);
+        auto s = S[0];
+        auto beta = ind(A, s);
+        auto gamma = ind(B, s);
+        std::cout << "beta = " << beta << std::endl;
+        std::cout << "gamma = " << gamma << std::endl;
+
+        auto t = return_t(P, E, beta, gamma, mpz_class(W), mpz_class(_p));
+        std::cout << "t = " << t << std::endl;
+        mpz_t result;
+        mpz_init_set(result, sigma);
+        mpz_mul(result, t.get_mpz_t(), result);
+        mpz_add(result, result, _p);
+        mpz_add_ui(result, result, 1);
+        mpz_class ret(result);
+
+        mpz_clears(W, y_2, a_x, x, result, NULL);
+        return mpz_class(result);
+    }
+
+}
+
+int main() {
+
+    mpz_class a = 2, b = 3, p("599234844171323798014378139219684288087362388635279936453684278910360928027555754598727507571581246001777277670122448689713029876360082601445563780429103017907332764522609770882588110158952861810496271751306659999739053379195854324818229379783745932907778328817332573106903755814283051471753305325707");
+    mpz_class c = 120, d = 1, e = 327, f = 12421;
+
+    std::deque<mpz_class> vec;
+    vec.push_back(b);
+    vec.push_back(a);
+    vec.push_back(p);
+    vec.push_back(c);
+    vec.push_back(e);
+    vec.push_back(f);
+    vec.push_back(d);
+    vec.push_back(e);
+    std::sort(vec.begin(), vec.end());
+    
+    elliptic_curve curve(a.get_mpz_t(), b.get_mpz_t(), p.get_mpz_t());
+    point first = curve.generate_point();
+    point second = curve.generate_point();
+
+    std::cout << curve.sum(first, second);
+    std::cout << curve.mul(first, f.get_mpz_t());
+    std::cout << curve.neg(first);
+
+    //std::cout << curve.order();
 /*
     point pnt1 = curve.new_point(3, 6);
     point pnt2 = curve.new_point(80, -10);
@@ -299,10 +578,9 @@ int main()
     std::cout << curve.mul(pnt1, -2);
     std::cout << curve.neg(pnt1);
 */
-    point pnt = curve.generate_point();
-    std::cout << pnt << std::endl;
+    //point pnt = curve.generate_point();
+    //std::cout << pnt << std::endl;
 
-    mpz_clears(a, b, p, NULL);
 
 }
 

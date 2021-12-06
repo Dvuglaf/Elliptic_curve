@@ -18,7 +18,7 @@ void utils::rand_not_sqr_res(mpz_t result, const mpz_t p) {
 
 unsigned long utils::get_seed() {
     std::random_device r;
-    std::mt19937 e1(r());
+    std::default_random_engine e1(r());
     std::uniform_int_distribution<unsigned long> uniform_dist(1, std::numeric_limits<unsigned long>::max());
     unsigned long value = uniform_dist(e1);
     return value;

@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include <iostream>
 #include <gmp.h>
+#include <deque>
+#include <gmpxx.h>
 
 struct point;
 
@@ -13,19 +15,31 @@ private:
 public:
     elliptic_curve(const mpz_t, const mpz_t, const mpz_t);
 
+
     point new_point(const mpz_t, const mpz_t, const bool);
     point new_point(long int, long int, const bool);
-        
+
     point sum(const point&, const point&);
     point mul(const point&, const mpz_t);
     point mul(const point&, const long int);
     point neg(const point&);
 
+    mpz_class order();
+
     point generate_point();
+    point generate_point(const mpz_t, const elliptic_curve&);
+
 
 private:
     point x2(const point&);
     bool exist_point(const mpz_t, const mpz_t, const bool);
+    void set_a(const mpz_t);
+    void set_b(const mpz_t);
+    void set_p(const mpz_t);
+    static std::deque<mpz_class> shanks(std::deque<mpz_class>& A, std::deque<mpz_class>& B, const point P, const elliptic_curve E, const mpz_class W, const mpz_class x);
+
+    mpz_t* get_p();
+
 };
 
 struct point {
@@ -47,6 +61,7 @@ public:
 };
 
 std::ostream& operator<<(std::ostream&, const point&);
+std::deque<mpz_class> cross(std::deque<mpz_class>, std::deque < mpz_class>);
 
 
 
