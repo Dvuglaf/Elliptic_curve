@@ -29,12 +29,14 @@ std::string utils::binary(const mpz_class& x) {
 }
 
 mpz_class utils::sqrtm(const mpz_class& x, const mpz_class& mod) {
+    //2.3.8 
+
     mpz_class a = x, p = 8, result;
 
     mpz_mod(a.get_mpz_t(), a.get_mpz_t(), mod.get_mpz_t());
     mpz_mod_ui(p.get_mpz_t(), mod.get_mpz_t(), 8); // p = _p mod 8
 
-    // 1. [Простейшие случаи]
+    // 1. [Simplest cases]
     if (p == 3 || p == 7) {
         mpz_class pow = (mod + 1) / 4;
         mpz_powm(result.get_mpz_t(), a.get_mpz_t(), pow.get_mpz_t(), mod.get_mpz_t()); // result = a^pow mod(_p)
@@ -56,8 +58,8 @@ mpz_class utils::sqrtm(const mpz_class& x, const mpz_class& mod) {
         return result;
     }
 
-    // 2. [Случай _p = 1 (mod 8)]
-    //находим случ. квадратичный невычет (legandre = - 1)
+    // 2. [Case _p = 1 (mod 8)]
+    //find random not square residue (legandre = - 1)
 
     mpz_class d;
     d = rand_not_sqr_res(mod); // d = random not square residue mod(_p)
@@ -66,7 +68,7 @@ mpz_class utils::sqrtm(const mpz_class& x, const mpz_class& mod) {
     mpz_class q = mod - 1;
 
     unsigned int s = 0;
-    while (mpz_tstbit(q.get_mpz_t(), s) == 0) s++;
+    while (mpz_tstbit(q.get_mpz_t(), s) == 0) ++s;
 
     mpz_class t = q, denominator = 2;
 

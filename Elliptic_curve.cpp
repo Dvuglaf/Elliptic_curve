@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <gmpxx.h>
 
-const mpz_class elliptic_curve::_Point::get_x() const {
+mpz_class elliptic_curve::_Point::get_x() const {
     return _x;
 }
 
@@ -15,25 +15,21 @@ mpz_class elliptic_curve::_Point::_Point::get_y() const {
     return _y;
 }
 
-const bool elliptic_curve::_Point::_Point::get_z() const {
+bool elliptic_curve::_Point::_Point::get_z() const {
     return _z;
 }
 
- 
 elliptic_curve::_Point::_Point(const mpz_class x, const mpz_class y, const bool z = true) : _x(x), _y(y), _z(z) {}
 
 elliptic_curve::_Point::_Point(const int x, const int y, const bool z = true) : _x(x), _y(y), _z(z) {}
 
-elliptic_curve::elliptic_curve(const mpz_class a, const mpz_class b, const mpz_class p) : _a(a), _b(b), _p(p) {}
+elliptic_curve::elliptic_curve(const mpz_class& a, const mpz_class& b, const mpz_class& p) : _a(a), _b(b), _p(p) {}
 
-void elliptic_curve::set_a(const mpz_class a) {
+void elliptic_curve::set_a(const mpz_class& a) {
     _a = a;
 }
-void elliptic_curve::set_b(const mpz_class b) {
+void elliptic_curve::set_b(const mpz_class& b) {
     _b = b;
-}
-void elliptic_curve::set_p(const mpz_class p) {
-    _p = p;
 }
 
 mpz_class elliptic_curve::get_a() const {
@@ -46,13 +42,13 @@ mpz_class elliptic_curve::get_p() const {
     return _p;
 }
 
-bool elliptic_curve::exist_point(const mpz_class x, const mpz_class y, const bool z = true) const {
+bool elliptic_curve::exist_point(const mpz_class& x, const mpz_class& y, const bool z = true) const {
     if (!z)
         return true;
 
     mpz_class left = y * y;
     mpz_mod(left.get_mpz_t(), left.get_mpz_t(), _p.get_mpz_t());
-    mpz_class right = (x * x * x + x * _a + _b) % _p;
+    mpz_class right = x * x * x + x * _a + _b;
     mpz_mod(right.get_mpz_t(), right.get_mpz_t(), _p.get_mpz_t());
     if (left != right) {
         std::cout << "Point = (" << x << ", " << y << ") are not on the curve.\n";
@@ -61,8 +57,8 @@ bool elliptic_curve::exist_point(const mpz_class x, const mpz_class y, const boo
     return true;
 }
 
-elliptic_curve::_Point elliptic_curve::new_point(const mpz_class x, const mpz_class y, const bool z = true) const {
-    if (z == false) {
+elliptic_curve::_Point elliptic_curve::new_point(const mpz_class& x, const mpz_class& y, const bool z = true) const {
+    if (!z) {
         return point(0, 1, false);
     }
     if (elliptic_curve::exist_point(x, y, z)) {
@@ -71,10 +67,7 @@ elliptic_curve::_Point elliptic_curve::new_point(const mpz_class x, const mpz_cl
     return point(0, 1, false);
 }
 
-elliptic_curve::_Point elliptic_curve::new_point(long int x, long int y, const bool z = true) const {
-    if (z == false) {
-        return point(0, 1, false);
-    }
+elliptic_curve::_Point elliptic_curve::new_point(const long int x, const long int y, const bool z = true) const {
     return new_point(mpz_class(x), mpz_class(y), z);
 }
 
@@ -94,7 +87,7 @@ elliptic_curve::_Point elliptic_curve::sum(const elliptic_curve::_Point& P, cons
         mpz_mod(temp.get_mpz_t(), temp.get_mpz_t(), _p.get_mpz_t());
 
         if (temp == 0) {
-            return point(0, 1, 0);
+            return point(0, 1, false);
         }
         mpz_class first = 3 * _x1 * _x1 + _a;
         mpz_mod(first.get_mpz_t(), first.get_mpz_t(), _p.get_mpz_t()); // first = 3*x1^2 + a mod(_p)
@@ -122,12 +115,12 @@ elliptic_curve::_Point elliptic_curve::sum(const elliptic_curve::_Point& P, cons
     mpz_class res_y = m * (_x1 - res_x) - _y1; // y3 = m * (x1 - x3) - y1 mod(_p)
     mpz_mod(res_y.get_mpz_t(), res_y.get_mpz_t(), _p.get_mpz_t());
 
-    return point(res_x, res_y, 1);;
+    return point(res_x, res_y, 1);
 }
 
 std::ostream& operator<<(std::ostream& out, const elliptic_curve::_Point& P)  {
     if (P.get_z() == false) {
-        out << "O\n";
+        out << "O";
     }
     else {
         out << "( " << P.get_x() << ", " << P.get_y() << " )";
@@ -139,7 +132,7 @@ elliptic_curve::_Point elliptic_curve::x2(const elliptic_curve::_Point& P) const
     return sum(P, P);
 }
 
-elliptic_curve::_Point elliptic_curve::mul(const elliptic_curve::_Point& P, const mpz_class n) const {
+elliptic_curve::_Point elliptic_curve::mul(const elliptic_curve::_Point& P, const mpz_class& n) const {
     if (!P.get_z()) {
         return P;
     }
@@ -223,14 +216,9 @@ elliptic_curve::_Point elliptic_curve::generate_point(mpz_class x) {
 }
 
 std::vector<mpz_class> cross(std::vector<mpz_class> A, std::vector <mpz_class> B) {
-    std::sort(A.begin(), A.end(), [](mpz_class first, mpz_class second) {
-        if (mpz_cmp(first.get_mpz_t(), second.get_mpz_t()) < 0)
-            return true;
-        return false;
-        });
+    std::sort(A.begin(), A.end());
 
     std::sort(B.begin(), B.end());
-
 
     unsigned long i = 0, j = 0;
     std::vector<mpz_class> S;
@@ -243,12 +231,16 @@ std::vector<mpz_class> cross(std::vector<mpz_class> A, std::vector <mpz_class> B
             ++i;
             while ((i < A.size() - 1) && (A[i] == A[i - 1])) {
                 ++i;
+                S.resize(0);
+                return S;
             }
         }
         else {
             ++j;
             while ((j < B.size() - 1) && (B[j] == B[j - 1])) {
                 ++j;
+                S.resize(0);
+                return S;
             }
         }
     }
@@ -256,46 +248,43 @@ std::vector<mpz_class> cross(std::vector<mpz_class> A, std::vector <mpz_class> B
 
 }
 
-std::vector<mpz_class> shanks(const elliptic_curve& E,
-    std::vector<mpz_class>& A, std::vector<mpz_class>& B, 
-    const elliptic_curve::_Point P, const mpz_class W, const mpz_class x
-) {
+std::vector<mpz_class> shanks(
+    const elliptic_curve& E, std::vector<mpz_class>& A, std::vector<mpz_class>& B, 
+    const elliptic_curve::_Point& P, const mpz_class& W, const mpz_class& x) {
+
     mpz_class idx = 0, bound = W - 1;
-    A.reserve(bound.get_ui());
-    elliptic_curve::_Point point_temp = E.new_point(0, 1 , false);
-   
+    elliptic_curve::_Point point_temp = E.mul(P, E.get_p());
+
     for (; idx <= bound; idx += 1) {
-        point_temp = E.mul(P, E.get_p() + idx + 1);
+        point_temp = E.sum(point_temp, P);
         A.push_back(point_temp.get_x());
     }
 
     idx = 0;
     bound = W;
-    A.reserve(bound.get_ui());
-    
-    for (; idx <= bound; idx += 1) {
-        point_temp = E.mul(P, W * idx);
+    B.push_back(0);
+    const auto pnt = E.mul(P, W);
+    B.push_back(pnt.get_x());
+    for (idx = 2; idx <= bound; idx += 1) {
+        point_temp = E.sum(point_temp, pnt);
         B.push_back(point_temp.get_x());
     }
     return cross(A, B);
 }
 
-mpz_class ind(std::vector<mpz_class>& S, mpz_class s) {
-    mpz_t i;
-    mpz_init_set_ui(i, 0);
+mpz_class ind(const std::vector<mpz_class>& S, const mpz_class& s) {
+    mpz_class i = 0;
     for (auto& it : S) {
         if (it == s) {
-            mpz_clear(i);
-            return mpz_class(i);
+            return i;
         }
-        mpz_add_ui(i, i, 1);
+        i += 1;
     }
-    mpz_clear(i);
     return mpz_class(-1);
 
 }
 
-mpz_class return_t(const elliptic_curve::_Point& P, elliptic_curve E, const mpz_class& beta, const mpz_class& gamma, const mpz_class& W, const mpz_class p) {
+mpz_class return_t(const elliptic_curve::_Point& P, const elliptic_curve& E, const mpz_class& beta, const mpz_class& gamma, const mpz_class& W, const mpz_class& p) {
     mpz_class temp = beta + gamma * W;
     mpz_class test = p + 1 + temp;
     auto pnt = E.mul(P, test);
@@ -308,7 +297,13 @@ mpz_class return_t(const elliptic_curve::_Point& P, elliptic_curve E, const mpz_
 
 mpz_class order(const elliptic_curve& curve) {
     if (curve.get_p() <= 229) {
-
+        mpz_class nominator, result = curve.get_p() + 1;
+        for (int x = 0; x < curve.get_p(); ++x) {
+            nominator = x * x * x + curve.get_a() * x + curve.get_b();
+            mpz_mod(nominator.get_mpz_t(), nominator.get_mpz_t(), curve.get_p().get_mpz_t());
+            result += mpz_legendre(nominator.get_mpz_t(), curve.get_p().get_mpz_t());
+        }
+        return result;
     }
 
 
@@ -355,6 +350,7 @@ mpz_class order(const elliptic_curve& curve) {
             x *= g;
 
         }
+        
         auto P = E.generate_point(x);
         if (P.get_z() == false) {
             E.set_a(curve.get_a());
@@ -377,7 +373,7 @@ mpz_class order(const elliptic_curve& curve) {
         auto beta = ind(A, s);
         auto gamma = ind(B, s);
 
-        auto t = return_t(P, E, beta, gamma, mpz_class(W), mpz_class(E.get_p()));
+        auto t = return_t(P, E, beta, gamma, W, E.get_p());
         return mpz_class(E.get_p() + 1 + sigma * t);
     }
 
@@ -385,7 +381,7 @@ mpz_class order(const elliptic_curve& curve) {
 
 int main() {
 
-    mpz_class a = 2, b = 3, p("421");//p("599234844171323798014378139219684288087362388635279936453684278910360928027555754598727507571581246001777277670122448689713029876360082601445563780429103017907332764522609770882588110158952861810496271751306659999739053379195854324818229379783745932907778328817332573106903755814283051471753305325707");
+    mpz_class a = -2, b = 3, p("421");//p("599234844171323798014378139219684288087362388635279936453684278910360928027555754598727507571581246001777277670122448689713029876360082601445563780429103017907332764522609770882588110158952861810496271751306659999739053379195854324818229379783745932907778328817332573106903755814283051471753305325707");
     mpz_class c = 120, d = 1, e = 327, f = 12421;
 
 
