@@ -1,69 +1,74 @@
 ﻿#pragma once
 #include <iostream>
 #include <gmp.h>
-#include <deque>
+#include <vector>
 #include <gmpxx.h>
+class _Point;
 
-struct point;
 
 class elliptic_curve {
+public:
+
+    struct _Point {
+        friend class elliptic_curve;
+    private:
+        mpz_class _x;
+        mpz_class _y;
+        bool  _z = true;
+
+    private:
+        _Point(const mpz_class, const mpz_class, const bool);
+        _Point(const int, const int, const bool);
+
+
+    public:
+        const mpz_class get_x() const;
+        mpz_class get_y() const;
+        const bool get_z() const;
+    };
 private:
-    mpz_t _a;
-    mpz_t _b;
-    mpz_t _p;
+
+    mpz_class _a;
+    mpz_class _b;
+    mpz_class _p;
 
 public:
-    elliptic_curve(const mpz_t, const mpz_t, const mpz_t);
+    elliptic_curve(const mpz_class, const mpz_class, const mpz_class);
 
 
-    point new_point(const mpz_t, const mpz_t, const bool);
-    point new_point(long int, long int, const bool);
+    _Point new_point(const mpz_class, const mpz_class, const bool) const;
+    _Point new_point(long int, long int, const bool) const;
 
-    point sum(const point&, const point&);
-    point mul(const point&, const mpz_t);
-    point mul(const point&, const long int);
-    point neg(const point&);
+    _Point generate_point();
+    _Point generate_point(const mpz_class);
 
-    mpz_class order();
+    _Point sum(const _Point&, const _Point&) const;
+    _Point mul(const _Point&, const mpz_class) const;
+    _Point mul(const _Point&, const long int) const;
+    _Point neg(const _Point&) const;
 
-    point generate_point();
-    point generate_point(const mpz_t, const elliptic_curve&);
+
+    mpz_class get_a() const;
+    mpz_class get_b() const;
+    mpz_class get_p() const;
+
+    void set_a(const mpz_class); //??
+    void set_b(const mpz_class);
 
 
 private:
-    point x2(const point&);
-    bool exist_point(const mpz_t, const mpz_t, const bool);
-    void set_a(const mpz_t);
-    void set_b(const mpz_t);
-    void set_p(const mpz_t);
-    static std::deque<mpz_class> shanks(std::deque<mpz_class>& A, std::deque<mpz_class>& B, const point P, const elliptic_curve E, const mpz_class W, const mpz_class x);
-
-    mpz_t* get_p();
-
+    _Point x2(const _Point&) const;
+    bool exist_point(const mpz_class, const mpz_class, const bool) const;
+    void set_p(const mpz_class);//
 };
 
-struct point {
-    friend class elliptic_curve;
-private:
-    mpz_t _x;
-    mpz_t _y;
-    elliptic_curve* _curve = nullptr;
-    bool  _z = true;
+std::vector<mpz_class> shanks(const elliptic_curve&, std::vector<mpz_class>& A, std::vector<mpz_class>& B, const elliptic_curve::_Point P, const mpz_class W, const mpz_class x);
+mpz_class order(const elliptic_curve&);
 
-private:
-    point(const mpz_t, const mpz_t, elliptic_curve&, const bool);
-    point(const int, const int, elliptic_curve&, const bool );
+std::ostream& operator<<(std::ostream&, const elliptic_curve::_Point&);
+std::vector<mpz_class> cross(std::vector<mpz_class>, std::vector < mpz_class>);
 
-public:
-    const mpz_t* get_x() const;
-    const mpz_t* get_y() const;
-    const bool get_z() const;
-};
-
-std::ostream& operator<<(std::ostream&, const point&);
-std::deque<mpz_class> cross(std::deque<mpz_class>, std::deque < mpz_class>);
-
-
+typedef class elliptic_curve::_Point point;
 
 /*
     1. Сложение +

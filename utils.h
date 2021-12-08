@@ -1,12 +1,12 @@
 #pragma once
-#include <gmp.h>
+#include <gmpxx.h>
 
 namespace utils {
-	void sqrtm(mpz_t, const mpz_t, const mpz_t);
+	mpz_class sqrtm(const mpz_class&, const mpz_class&);
 
-	std::string binary(const mpz_t);
+	std::string binary(const mpz_class&);
 
-	void rand_not_sqr_res(mpz_t, const mpz_t);
+	mpz_class rand_not_sqr_res(const mpz_class&);
 
 	unsigned long get_seed();
 }

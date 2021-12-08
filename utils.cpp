@@ -1,19 +1,16 @@
 ﻿#include <random>
 #include "utils.h"
+#include <iostream>
 
-void utils::rand_not_sqr_res(mpz_t result, const mpz_t p) {
-    mpz_t temp;
-    mpz_init_set(temp, p);
-    mpz_cdiv_q_ui(temp, temp, 2); // temp = p/2
+mpz_class utils::rand_not_sqr_res(const mpz_class& p) {
+    mpz_class result = p;
+    result /= 2; // result = p/2
     while (true) {
-        if (mpz_legendre(temp, p) == -1) {
-            mpz_set(result, temp);
-            mpz_clear(temp);
-            return;
+        if (mpz_legendre(result.get_mpz_t(), p.get_mpz_t()) == -1) {
+            return result;
         }
-        mpz_add_ui(temp, temp, 1);
+        result += 1;
     }
-
 }
 
 unsigned long utils::get_seed() {
@@ -25,122 +22,90 @@ unsigned long utils::get_seed() {
 
 }
 
-std::string utils::binary(const mpz_t x) {
-    auto len = mpz_sizeinbase(x, 2) + 2;
-    char* c_str = new char[len];
-    c_str = mpz_get_str(c_str, 2, x);
-    std::string str(c_str);
-    delete[] c_str;
+std::string utils::binary(const mpz_class& x) {
+    std::string str = x.get_str(2);
     std::reverse(str.begin(), str.end());
     return str;
 }
 
-void utils::sqrtm(mpz_t result, const mpz_t x, const mpz_t mod) {
-    mpz_t a, p;
-    mpz_init_set(a, x);
-    mpz_init_set_ui(p, 8);
-    mpz_mod(a, a, mod);
+mpz_class utils::sqrtm(const mpz_class& x, const mpz_class& mod) {
+    mpz_class a = x, p = 8, result;
 
-    mpz_mod_ui(p, mod, 8); // p = _p mod 8
+    mpz_mod(a.get_mpz_t(), a.get_mpz_t(), mod.get_mpz_t());
+    mpz_mod_ui(p.get_mpz_t(), mod.get_mpz_t(), 8); // p = _p mod 8
 
     // 1. [Простейшие случаи]
-    if (mpz_cmp_ui(p, 3) == 0 || mpz_cmp_ui(p, 7) == 0) {
-        mpz_t pow;
-        mpz_init_set(pow, mod);
-        mpz_add_ui(pow, pow, 1); // pow = _p + 1
-        mpz_cdiv_q_ui(pow, pow, 4); // pow = (_p + 1)/4
-        mpz_powm(result, a, pow, mod); // result = a^pow mod(_p)
-        mpz_clears(a, p, pow, NULL);
-        return;
+    if (p == 3 || p == 7) {
+        mpz_class pow = (mod + 1) / 4;
+        mpz_powm(result.get_mpz_t(), a.get_mpz_t(), pow.get_mpz_t(), mod.get_mpz_t()); // result = a^pow mod(_p)
+        return result;
     }
-    if (mpz_cmp_ui(p, 5) == 0) {
-        mpz_t pow, c;
-        mpz_init_set(pow, mod);
-        mpz_add_ui(pow, pow, 3);
-        mpz_cdiv_q_ui(pow, pow, 8); // pow = (_p + 3)/8
-        mpz_powm(result, a, pow, mod); // result = a^pow mod(_p)
-        mpz_init(c);
-        mpz_powm_ui(c, result, 2, mod); // c = x^2 mod(_p)
-        if (mpz_cmp(c, a) != 0) {
-            mpz_set(pow, mod);
-            mpz_sub_ui(pow, pow, 1);
-            mpz_cdiv_q_ui(pow, pow, 4); // pow = (_p - 1)/4
-            mpz_t second;
-            mpz_init_set_ui(second, 2);
-            mpz_powm(second, second, pow, mod); // second = 2^pow mod(_p)
-            mpz_mul(result, result, second);
-            mpz_mod(result, result, mod); // result = result * second mod(_p)
-            mpz_clears(second, c, a, p, pow, NULL);
-            return;
+    if (p == 5) {
+        mpz_class pow = (mod + 3) / 8, c;
+
+        mpz_powm(result.get_mpz_t(), a.get_mpz_t(), pow.get_mpz_t(), mod.get_mpz_t()); // result = a^pow mod(_p)
+
+        mpz_powm_ui(c.get_mpz_t(), result.get_mpz_t(), 2, mod.get_mpz_t()); // c = x^2 mod(_p)
+        if (c != a) {
+            pow = (mod - 1) / 4;
+            mpz_class base = 2;
+            mpz_powm(base.get_mpz_t(), base.get_mpz_t(), pow.get_mpz_t(), mod.get_mpz_t()); // base = 2^pow mod(_p)
+            result *= base;
+            mpz_mod(result.get_mpz_t(), result.get_mpz_t(), mod.get_mpz_t()); // result = result * base mod(_p)
         }
-        mpz_clears(c, a, p, pow, NULL);
-        return;
+        return result;
     }
 
     // 2. [Случай _p = 1 (mod 8)]
     //находим случ. квадратичный невычет (legandre = - 1)
 
-    mpz_t d, t, q;
-    mpz_inits(d, t, q, NULL);
-    rand_not_sqr_res(d, mod); // d = random not square residue mod(_p)
+    mpz_class d;
+    d = rand_not_sqr_res(mod); // d = random not square residue mod(_p)
 
-    //present q = p-1 = t * 2^s
-    mpz_set(q, mod);
-    mpz_sub_ui(q, q, 1);
+    //view q = p-1 = t * 2^s
+    mpz_class q = mod - 1;
+
     unsigned int s = 0;
-    while (mpz_tstbit(q, s) == 0) s++;
-    mpz_t second;
-    mpz_init_set_ui(second, 2);
-    mpz_pow_ui(second, second, s); // second = 2^s
-    mpz_div(t, q, second); // t = (p-1)/2^s
-    mpz_clears(q, p, NULL);
+    while (mpz_tstbit(q.get_mpz_t(), s) == 0) s++;
 
+    mpz_class t = q, denominator = 2;
 
-    mpz_t A, D, m;
-    mpz_inits(A, D, m, NULL);
+    mpz_pow_ui(denominator.get_mpz_t(), denominator.get_mpz_t(), s); // second = 2^s
+    t /= denominator;
 
-    mpz_powm(A, a, t, mod); // A = a^t mod(_p)
-    mpz_powm(D, d, t, mod); // D = d^t mod(_p)
+    mpz_class A, D, m = 0;
 
-    mpz_set_ui(m, 0);
-    mpz_t base, pow1, pow2;
-    mpz_inits(base, pow1, pow2, NULL);
-    for (unsigned int i = 0; i < s; ++i) {
-        mpz_set(base, D);
-        mpz_powm(base, base, m, mod);
-        mpz_mul(base, A, base);
-        mpz_mod(base, base, mod); // base = A * D^m mod(_p)
-        mpz_set_ui(pow1, 2);
-        mpz_set_ui(pow2, s);
-        mpz_sub_ui(pow2, pow2, 1);
-        mpz_sub_ui(pow2, pow2, i); // pow2 = s - 1 - i
+    mpz_powm(A.get_mpz_t(), a.get_mpz_t(), t.get_mpz_t(), mod.get_mpz_t()); // A = a^t mod(_p)
+    mpz_powm(D.get_mpz_t(), d.get_mpz_t(), t.get_mpz_t(), mod.get_mpz_t()); // D = d^t mod(_p)
 
-        mpz_powm(pow1, pow1, pow2, mod); // pow1 = 2^pow2 mod(_p)
-        mpz_powm(base, base, pow1, mod); // base = base^pow1 mod(_p)
+    mpz_class left, pow1, pow2;
+    const mpz_class right = mod - 1;
+    for (mpz_class i = 0; i < s; i += 1) {
+        left = D;
+        mpz_powm(left.get_mpz_t(), left.get_mpz_t(), m.get_mpz_t(), mod.get_mpz_t());
+        left *= A;
+        mpz_mod(left.get_mpz_t(), left.get_mpz_t(), mod.get_mpz_t()); // left = A * D^m mod(_p)
+        pow1 = 2;
+        pow2 = s - 1 - i; // pow2 = s - 1 - i
 
-        mpz_set(second, mod);
-        mpz_sub_ui(second, second, 1); // second = -1 mod(_p)
-
-
-        if (mpz_cmp(base, second) == 0) {
-            mpz_set_ui(base, 2);
-            mpz_set_ui(pow1, i);
-            mpz_powm(base, base, pow1, mod);
-            mpz_add(m, m, base); // m = m + 2^i
+        mpz_powm(pow1.get_mpz_t(), pow1.get_mpz_t(), pow2.get_mpz_t(), mod.get_mpz_t()); // pow1 = 2^pow2 mod(_p)
+        mpz_powm(left.get_mpz_t(), left.get_mpz_t(), pow1.get_mpz_t(), mod.get_mpz_t()); // left = left^pow1 mod(_p)
+       
+        if (left == right) {
+            mpz_class base = 2;
+            mpz_powm(base.get_mpz_t(), base.get_mpz_t(), i.get_mpz_t(), mod.get_mpz_t());
+            m += base;
         }
     }
-    mpz_set(pow1, t);
-    mpz_add_ui(pow1, pow1, 1);
-    mpz_div_ui(pow1, pow1, 2); // pow1 = (t+1)/2
+    pow1 = (t + 1) / 2; // pow1 = (t+1)/2
 
-    mpz_set(pow2, m);
-    mpz_div_ui(pow2, pow2, 2); // pow2 = m/2 
+    pow2 = m / 2; // pow2 = m/2 
 
-    mpz_powm(a, a, pow1, mod); // a = a^pow1 mod(_p)
-    mpz_powm(D, D, pow2, mod); // D = D^pow2 mod(_p)
+    mpz_powm(a.get_mpz_t(), a. get_mpz_t(), pow1.get_mpz_t(), mod.get_mpz_t()); // a = a^pow1 mod(_p)
+    mpz_powm(D.get_mpz_t(), D.get_mpz_t(), pow2.get_mpz_t(), mod.get_mpz_t()); // D = D^pow2 mod(_p)
 
-    mpz_mul(result, a, D);
-    mpz_mod(result, result, mod); //result = a * D mod(_p)
-    mpz_clears(a, d, t, second, A, D, m, base, pow1, pow2, NULL);
+    result = a * D;
+    mpz_mod(result.get_mpz_t(), result.get_mpz_t(), mod.get_mpz_t()); //result = a * D mod(_p)
+    return result;
 
 }
