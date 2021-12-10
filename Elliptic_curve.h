@@ -3,8 +3,9 @@
 #include <gmp.h>
 #include <vector>
 #include <gmpxx.h>
-class _Point;
 
+
+struct _Point;
 
 class elliptic_curve {
 public:
@@ -16,9 +17,7 @@ public:
         bool  _z = true;
 
     private:
-        _Point(const mpz_class, const mpz_class, const bool);
-        _Point(const int, const int, const bool);
-
+        _Point(const mpz_class&, const mpz_class&, const bool);
     public:
         mpz_class get_x() const;
         mpz_class get_y() const;
@@ -34,9 +33,12 @@ public:
     _Point generate_point(mpz_class);
 
     _Point sum(const _Point&, const _Point&) const;
-    _Point mul(const _Point&, const mpz_class&) const;
-    _Point mul(const _Point&, const long int) const;
+    _Point sub(const _Point&, const _Point&) const;
     _Point neg(const _Point&) const;
+
+    _Point mul1(const _Point&, const mpz_class&) const;
+    _Point mul2(const _Point&, const mpz_class&) const;
+
 
 
     mpz_class get_a() const;
@@ -61,22 +63,12 @@ private:
 };
 
 
-std::vector<mpz_class> shanks(const elliptic_curve&, std::vector<mpz_class>&, std::vector<mpz_class>&, const elliptic_curve::_Point&, const mpz_class&, const mpz_class&);
+std::vector<mpz_class> shanks(const elliptic_curve&, std::vector<mpz_class>&, std::vector<mpz_class>&, const elliptic_curve::_Point&, const mpz_class&);
+
 mpz_class order(const elliptic_curve&);
 
 std::ostream& operator<<(std::ostream&, const elliptic_curve::_Point&);
+
 std::vector<mpz_class> cross(std::vector<mpz_class>, std::vector < mpz_class>);
 
-typedef class elliptic_curve::_Point point;
-
-/*
-    1. Сложение +
-    2. Обратная точка +
-    3. Умножение (удвоение) +
-    4. Умножение (тернарное разложение)
-    5. Рандомная точка на кривой +
-    6. Подсчет точек на кривой
-
-    Сделать, чтоб извне нельзя было что то делать с точками и проверки +
-
-*/
+typedef struct elliptic_curve::_Point point;

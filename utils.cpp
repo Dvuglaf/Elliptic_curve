@@ -28,6 +28,15 @@ std::string utils::binary(const mpz_class& x) {
     return str;
 }
 
+std::string utils::binary_and_n_zeros_add(const mpz_class& x, const unsigned long n) {
+    std::string str = x.get_str(2);
+    std::reverse(str.begin(), str.end());
+    while (str.size() < n) {
+        str.push_back('0');
+    }
+    return str;
+}
+
 mpz_class utils::sqrtm(const mpz_class& x, const mpz_class& mod) {
     //2.3.8 
 
