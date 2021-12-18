@@ -14,7 +14,7 @@ public:
     private:
         mpz_class _x;
         mpz_class _y;
-        bool  _z = true;
+        bool _z = true;
 
     private:
         _Point(const mpz_class&, const mpz_class&, const bool);
@@ -38,7 +38,7 @@ public:
 
     _Point mul1(const _Point&, const mpz_class&) const;
     _Point mul2(const _Point&, const mpz_class&) const;
-
+    _Point mul3(const _Point&, const mpz_class&) const;
 
 
     mpz_class get_a() const;
@@ -48,11 +48,16 @@ public:
     void set_a(const mpz_class&); 
     void set_b(const mpz_class&);
 
+    friend mpz_class order(const elliptic_curve&);
 
 
 private:
     _Point x2(const _Point&) const;
     bool exist_point(const mpz_class&, const mpz_class&, const bool) const;
+    static std::vector<mpz_class> cross(std::vector<mpz_class>, std::vector <mpz_class>);
+    static mpz_class ind(const std::vector<mpz_class>&, const mpz_class&);
+    static std::vector<mpz_class> shanks(const elliptic_curve&, std::vector<mpz_class>&, std::vector<mpz_class>&, const elliptic_curve::_Point&, const mpz_class&);
+    static mpz_class return_t(const elliptic_curve::_Point&, const elliptic_curve&, const mpz_class&, const mpz_class&, const mpz_class&, const mpz_class&);
 
 private:
 
@@ -62,13 +67,7 @@ private:
 
 };
 
-
-std::vector<mpz_class> shanks(const elliptic_curve&, std::vector<mpz_class>&, std::vector<mpz_class>&, const elliptic_curve::_Point&, const mpz_class&);
-
-mpz_class order(const elliptic_curve&);
-
 std::ostream& operator<<(std::ostream&, const elliptic_curve::_Point&);
 
-std::vector<mpz_class> cross(std::vector<mpz_class>, std::vector < mpz_class>);
 
 typedef struct elliptic_curve::_Point point;

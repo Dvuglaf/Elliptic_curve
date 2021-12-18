@@ -5,6 +5,8 @@ namespace utils {
 	mpz_class sqrtm(const mpz_class&, const mpz_class&);
 
 	std::string binary(const mpz_class&);
+
+	std::string ternary(const mpz_class&);
 	
 	std::string binary_and_n_zeros_add(const mpz_class&, const unsigned long);
 

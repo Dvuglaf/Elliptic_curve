@@ -28,6 +28,34 @@ std::string utils::binary(const mpz_class& x) {
     return str;
 }
 
+std::string utils::ternary(const mpz_class& n) {
+    if (n == 1)
+        return std::string("1");
+    std::string bits = utils::binary(n);
+    for (int i = 0; i < bits.size() - 1; ++i) {
+        if (bits[i] == '1' && bits[i + 1] == '1') {
+            int t = 0;
+            int s = i;
+            while (bits[i] == '1' && i < bits.size()) {
+                ++i;
+                ++t;
+            }
+            bits.replace(s, 1, "A");
+            bits.replace(s + 1, t - 1, std::string(t - 1, '0'));
+            if (s + t < bits.size()) {
+                bits.replace(s + t, 1, "1");
+            }
+            else {
+                bits.insert(s + t, 1, '1');
+            }
+            --i;
+        }
+
+    }
+    return bits;
+
+}
+
 std::string utils::binary_and_n_zeros_add(const mpz_class& x, const unsigned long n) {
     std::string str = x.get_str(2);
     std::reverse(str.begin(), str.end());
