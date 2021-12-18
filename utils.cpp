@@ -66,7 +66,7 @@ std::string utils::binary_and_n_zeros_add(const mpz_class& x, const unsigned lon
 }
 
 mpz_class utils::sqrtm(const mpz_class& x, const mpz_class& mod) {
-    //2.3.8 
+    // Alg 2.3.8 
 
     mpz_class a = x, p = 8, result;
 

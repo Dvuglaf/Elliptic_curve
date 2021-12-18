@@ -36,8 +36,13 @@ public:
     _Point sub(const _Point&, const _Point&) const;
     _Point neg(const _Point&) const;
 
+    // Double and add
     _Point mul1(const _Point&, const mpz_class&) const;
+
+    // Alg 7.2.4: Add and sub
     _Point mul2(const _Point&, const mpz_class&) const;
+
+    // With ternary expansion
     _Point mul3(const _Point&, const mpz_class&) const;
 
 
