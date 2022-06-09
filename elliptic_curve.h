@@ -5,11 +5,11 @@
 #include <gmpxx.h>
 
 
-struct _Point;
+struct _point;
 
 class elliptic_curve {
 public:
-    struct _Point {
+    struct _point {
         friend class elliptic_curve;
     private:
         mpz_class _x;
@@ -17,7 +17,7 @@ public:
         bool _z = true;
 
     private:
-        _Point(const mpz_class&, const mpz_class&, const bool);
+        _point(const mpz_class&, const mpz_class&, const bool);
     public:
         mpz_class get_x() const;
         mpz_class get_y() const;
@@ -26,24 +26,24 @@ public:
 
     elliptic_curve(const mpz_class&, const mpz_class&, const mpz_class&);
 
-    _Point new_point(const mpz_class&, const mpz_class&, const bool) const;
-    _Point new_point(const long int, const long int, const bool) const;
+    _point new_point(const mpz_class&, const mpz_class&, const bool) const;
+    _point new_point(const long int, const long int, const bool) const;
 
-    _Point generate_point();
-    _Point generate_point(mpz_class);
+    _point generate_point();
+    _point generate_point(mpz_class);
 
-    _Point sum(const _Point&, const _Point&) const;
-    _Point sub(const _Point&, const _Point&) const;
-    _Point neg(const _Point&) const;
+    _point sum(const _point&, const _point&) const;
+    _point sub(const _point&, const _point&) const;
+    _point neg(const _point&) const;
 
     // Double and add
-    _Point mul1(const _Point&, const mpz_class&) const;
+    _point mul1(const _point&, const mpz_class&) const;
 
     // Alg 7.2.4: Add and sub
-    _Point mul2(const _Point&, const mpz_class&) const;
+    _point mul2(const _point&, const mpz_class&) const;
 
     // With ternary expansion
-    _Point mul3(const _Point&, const mpz_class&) const;
+    _point mul3(const _point&, const mpz_class&) const;
 
 
     mpz_class get_a() const;
@@ -57,12 +57,12 @@ public:
 
 
 private:
-    _Point x2(const _Point&) const;
+    _point x2(const _point&) const;
     bool exist_point(const mpz_class&, const mpz_class&, const bool) const;
     static std::vector<mpz_class> cross(std::vector<mpz_class>, std::vector <mpz_class>);
     static mpz_class ind(const std::vector<mpz_class>&, const mpz_class&);
-    static std::vector<mpz_class> shanks(const elliptic_curve&, std::vector<mpz_class>&, std::vector<mpz_class>&, const elliptic_curve::_Point&, const mpz_class&);
-    static mpz_class return_t(const elliptic_curve::_Point&, const elliptic_curve&, const mpz_class&, const mpz_class&, const mpz_class&, const mpz_class&);
+    static std::vector<mpz_class> shanks(const elliptic_curve&, std::vector<mpz_class>&, std::vector<mpz_class>&, const elliptic_curve::_point&, const mpz_class&);
+    static mpz_class return_t(const elliptic_curve::_point&, const elliptic_curve&, const mpz_class&, const mpz_class&, const mpz_class&, const mpz_class&);
 
 private:
 
@@ -72,7 +72,7 @@ private:
 
 };
 
-std::ostream& operator<<(std::ostream&, const elliptic_curve::_Point&);
+std::ostream& operator<<(std::ostream&, const elliptic_curve::_point&);
 
 
-typedef struct elliptic_curve::_Point point;
+typedef struct elliptic_curve::_point point;
